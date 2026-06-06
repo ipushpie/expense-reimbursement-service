@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PlusCircle, Trash2, Pencil, Eye, Receipt } from 'lucide-react';
 import { api } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody } from '@/components/ui/sheet';
+import ExpenseForm from '@/components/forms/ExpenseForm';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Expense } from '@/types';
 
@@ -27,13 +29,16 @@ export default function ExpensesPage() {
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [year, setYear] = useState(String(now.getFullYear()));
   const [search, setSearch] = useState('');
+  const [newOpen, setNewOpen] = useState(false);
 
-  useEffect(() => {
+  const fetchExpenses = () => {
     setLoading(true);
     api.get('/expenses', { params: { month, year, limit: 100 } })
       .then((r) => setExpenses(r.data.data.expenses))
       .finally(() => setLoading(false));
-  }, [month, year]);
+  };
+
+  useEffect(() => { fetchExpenses(); }, [month, year]);
 
   const filtered = expenses.filter((e) =>
     e.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -53,8 +58,8 @@ export default function ExpensesPage() {
           <h1 className="text-2xl font-bold text-slate-900">My Expenses</h1>
           <p className="text-slate-500 mt-1">Track and manage your expense records</p>
         </div>
-        <Button asChild>
-          <Link href="/expenses/new"><PlusCircle className="h-4 w-4" />New Expense</Link>
+        <Button onClick={() => setNewOpen(true)}>
+          <PlusCircle className="h-4 w-4" />New Expense
         </Button>
       </div>
 
@@ -68,9 +73,7 @@ export default function ExpensesPage() {
               className="w-56"
             />
             <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {Array.from({ length: 12 }, (_, i) => (
                   <SelectItem key={i + 1} value={String(i + 1)}>
@@ -80,9 +83,7 @@ export default function ExpensesPage() {
               </SelectContent>
             </Select>
             <Select value={year} onValueChange={setYear}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {[2023, 2024, 2025, 2026].map((y) => (
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
@@ -90,7 +91,9 @@ export default function ExpensesPage() {
               </SelectContent>
             </Select>
             {!loading && (
-              <p className="text-sm text-slate-400 ml-auto">{filtered.length} expense{filtered.length !== 1 ? 's' : ''}</p>
+              <p className="text-sm text-slate-400 ml-auto">
+                {filtered.length} expense{filtered.length !== 1 ? 's' : ''}
+              </p>
             )}
           </div>
         </CardHeader>
@@ -101,9 +104,9 @@ export default function ExpensesPage() {
             <div className="py-16 text-center text-slate-400">
               <Receipt className="h-10 w-10 mx-auto mb-3 opacity-20" />
               <p className="font-medium text-slate-500">No expenses found</p>
-              <p className="text-sm mt-1">Try a different period or create a new expense</p>
-              <Button variant="outline" size="sm" className="mt-4" asChild>
-                <Link href="/expenses/new">Create expense</Link>
+              <p className="text-sm mt-1">Try a different period or add a new expense</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => setNewOpen(true)}>
+                Add expense
               </Button>
             </div>
           ) : (
@@ -142,9 +145,11 @@ export default function ExpensesPage() {
                             <Button variant="ghost" size="icon" asChild title="Edit">
                               <Link href={`/expenses/${e.id}/edit`}><Pencil className="h-4 w-4" /></Link>
                             </Button>
-                            <Button variant="ghost" size="icon" title="Delete"
+                            <Button
+                              variant="ghost" size="icon" title="Delete"
                               onClick={() => deleteExpense(e.id)}
-                              className="text-red-400 hover:text-red-600 hover:bg-red-50">
+                              className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
@@ -158,6 +163,19 @@ export default function ExpensesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* New Expense Sheet */}
+      <Sheet open={newOpen} onOpenChange={setNewOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>New Expense</SheetTitle>
+            <SheetDescription>Record a new expense. You can attach receipts after saving.</SheetDescription>
+          </SheetHeader>
+          <SheetBody>
+            <ExpenseForm onSuccess={() => { setNewOpen(false); fetchExpenses(); }} />
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

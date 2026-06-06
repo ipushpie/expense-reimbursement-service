@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { Expense } from '@/types';
 
@@ -21,9 +20,13 @@ const CATEGORIES = [
 ];
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'AUD', 'CAD', 'SGD', 'CHF', 'CNY'];
 
-interface Props { expense?: Expense; }
+interface Props {
+  expense?: Expense;
+  /** Called after a successful save — use instead of router.push when embedded in a sheet */
+  onSuccess?: () => void;
+}
 
-export default function ExpenseForm({ expense }: Props) {
+export default function ExpenseForm({ expense, onSuccess }: Props) {
   const router = useRouter();
   const user = getCurrentUser();
   const [serverError, setServerError] = useState('');
@@ -42,87 +45,85 @@ export default function ExpenseForm({ expense }: Props) {
       } else {
         await api.post('/expenses', data);
       }
-      router.push('/expenses');
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push('/expenses');
+      }
     } catch (err: any) {
       setServerError(err.response?.data?.error?.message ?? 'Failed to save expense');
     }
   };
 
   return (
-    <Card className="border-0 shadow-sm max-w-2xl">
-      <CardHeader>
-        <CardTitle>{expense ? 'Edit Expense' : 'New Expense'}</CardTitle>
-        <CardDescription>
-          {expense ? 'Update the details below. Only draft expenses can be edited.' : 'Fill in the expense details. You can attach receipts after saving.'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          <div className="space-y-1.5">
-            <Label htmlFor="title">Title *</Label>
-            <Input id="title" placeholder="e.g. Taxi to client meeting"
-              {...register('title', { required: 'Title is required' })} />
-            {errors.title && <p className="text-xs text-destructive">{errors.title.message as string}</p>}
-          </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <div className="space-y-1.5">
+        <Label htmlFor="title">Title *</Label>
+        <Input id="title" placeholder="e.g. Taxi to client meeting"
+          {...register('title', { required: 'Title is required' })} />
+        {errors.title && <p className="text-xs text-destructive">{errors.title.message as string}</p>}
+      </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Amount *</Label>
-              <Input type="number" step="0.01" min="0.01" placeholder="0.00"
-                {...register('amount', { required: true, valueAsNumber: true, min: 0.01 })} />
-              {errors.amount && <p className="text-xs text-destructive">Valid amount required</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Currency</Label>
-              <Select defaultValue={expense?.currency ?? user?.currency ?? 'USD'} onValueChange={(v) => setValue('currency', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label>Amount *</Label>
+          <Input type="number" step="0.01" min="0.01" placeholder="0.00"
+            {...register('amount', { required: true, valueAsNumber: true, min: 0.01 })} />
+          {errors.amount && <p className="text-xs text-destructive">Valid amount required</p>}
+        </div>
+        <div className="space-y-1.5">
+          <Label>Currency</Label>
+          <Select defaultValue={expense?.currency ?? user?.currency ?? 'USD'} onValueChange={(v) => setValue('currency', v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Category *</Label>
-              <Select defaultValue={expense?.category ?? ''} onValueChange={(v) => setValue('category', v as any)}>
-                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c.replace('_', ' ')}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {errors.category && <p className="text-xs text-destructive">Category required</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="expenseDate">Expense Date *</Label>
-              <Input id="expenseDate" type="date" {...register('expenseDate', { required: true })} />
-            </div>
-          </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label>Category *</Label>
+          <Select defaultValue={expense?.category ?? ''} onValueChange={(v) => setValue('category', v as any)}>
+            <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c.replace('_', ' ')}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {errors.category && <p className="text-xs text-destructive">Category required</p>}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="expenseDate">Expense Date *</Label>
+          <Input id="expenseDate" type="date" {...register('expenseDate', { required: true })} />
+        </div>
+      </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="description">Description <span className="text-slate-400 font-normal">(optional)</span></Label>
-            <Textarea id="description" placeholder="Any additional context for this expense..."
-              {...register('description')} rows={3} />
-          </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="description">Description <span className="text-slate-400 font-normal">(optional)</span></Label>
+        <Textarea id="description" placeholder="Any additional context..."
+          {...register('description')} rows={3} />
+      </div>
 
-          <Separator />
+      <Separator />
 
-          {serverError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{serverError}</AlertDescription>
-            </Alert>
-          )}
+      {serverError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
+      )}
 
-          <div className="flex gap-3 pt-1">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" />{expense ? 'Updating...' : 'Creating...'}</> : expense ? 'Update Expense' : 'Create Expense'}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+      <div className="flex gap-3">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting
+            ? <><Loader2 className="h-4 w-4 animate-spin" />{expense ? 'Updating...' : 'Creating...'}</>
+            : expense ? 'Update Expense' : 'Create Expense'}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => onSuccess ? onSuccess() : router.back()}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }
