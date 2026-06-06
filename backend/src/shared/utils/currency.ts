@@ -20,8 +20,9 @@ export function getRate(from: string, to: string): number {
   const toRate = RATES_TO_USD[to.toUpperCase()];
   if (!fromRate) throw new ValidationError(`Unsupported currency: ${from}`);
   if (!toRate) throw new ValidationError(`Unsupported currency: ${to}`);
-  // from → USD → to
-  return fromRate / toRate;
+  // rates = units of that currency per 1 USD
+  // amount_in_to = amount_in_from * (toRate / fromRate)
+  return toRate / fromRate;
 }
 
 export function convertAmount(amount: number, from: string, to: string): number {

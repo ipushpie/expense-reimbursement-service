@@ -86,7 +86,7 @@ export default function ExpenseForm({ expense }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Category *</Label>
-              <Select defaultValue={expense?.category ?? ''} onValueChange={(v) => setValue('category', v)}>
+              <Select defaultValue={expense?.category ?? ''} onValueChange={(v) => setValue('category', v as any)}>
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
                   {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c.replace('_', ' ')}</SelectItem>)}

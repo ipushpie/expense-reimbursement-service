@@ -22,8 +22,8 @@ export const auditService = {
         action: input.action,
         entityType: input.entityType,
         entityId: input.entityId,
-        oldValues: input.oldValues ?? null,
-        newValues: input.newValues ?? null,
+        oldValues: input.oldValues ?? undefined,
+        newValues: input.newValues ?? undefined,
         ipAddress: input.ipAddress ?? null,
         ...(isExpense && { expense: { connect: { id: input.entityId } } }),
         ...(!isExpense && input.entityType === 'ReimbursementRequest' && {

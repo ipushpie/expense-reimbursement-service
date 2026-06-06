@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ExpenseCategory } from '@prisma/client';
+import { ExpenseCategory, ExpenseStatus } from '@prisma/client';
 import { SUPPORTED_CURRENCIES } from '../../shared/utils/currency';
 
 export const createExpenseSchema = z.object({
@@ -18,7 +18,7 @@ export const updateExpenseSchema = createExpenseSchema.partial();
 export const expenseQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
   year: z.coerce.number().int().min(2000).max(2100).optional(),
-  status: z.string().optional(),
+  status: z.nativeEnum(ExpenseStatus).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
