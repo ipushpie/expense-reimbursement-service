@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.next/
+out/
+
+# Environment — never commit real secrets
+.env
+*.env.local
+
+# Prisma generated
+backend/node_modules/
+
+# Uploads (local dev only — MinIO handles prod)
+uploads/
+
+# OS / editor
+.DS_Store
+.vscode/
+*.swp
+
+# Logs
+*.log
+logs/

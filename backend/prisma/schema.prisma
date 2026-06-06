@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  EMPLOYEE
+  EMPLOYER
+  ADMIN
+}
+
+enum ExpenseStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ReimbursementStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ExpenseCategory {
+  TRAVEL
+  MEALS
+  ACCOMMODATION
+  OFFICE_SUPPLIES
+  SOFTWARE
+  TRAINING
+  MEDICAL
+  COMMUNICATION
+  ENTERTAINMENT
+  OTHER
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String
+  name         String
+  role         UserRole    @default(EMPLOYEE)
+  currency     String      @default("USD")
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  expenses          Expense[]
+  submittedRequests ReimbursementRequest[] @relation("Employee")
+  approvedRequests  ReimbursementRequest[] @relation("Approver")
+  auditLogs         AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([departmentId])
+}
+
+model Department {
+  id            String  @id @default(uuid())
+  name          String  @unique
+  monthlyBudget Decimal @db.Decimal(12, 2)
+  currency      String  @default("USD")
+  users         User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Expense {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  title       String
+  amount      Decimal         @db.Decimal(12, 2)
+  currency    String
+  category    ExpenseCategory
+  description String?
+  expenseDate DateTime
+  month       Int
+  year        Int
+  status      ExpenseStatus   @default(DRAFT)
+
+  attachments        Attachment[]
+  reimbursementItems ReimbursementItem[]
+  auditLogs          AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, title, amount, expenseDate])
+  @@index([userId, month, year])
+  @@index([status])
+}
+
+model Attachment {
+  id         String  @id @default(uuid())
+  expenseId  String
+  expense    Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  filename   String
+  storedPath String
+  mimeType   String
+  sizeBytes  Int
+
+  createdAt DateTime @default(now())
+
+  @@index([expenseId])
+}
+
+model ReimbursementRequest {
+  id                      String              @id @default(uuid())
+  employeeId              String
+  employee                User                @relation("Employee", fields: [employeeId], references: [id])
+  approverId              String?
+  approver                User?               @relation("Approver", fields: [approverId], references: [id])
+  status                  ReimbursementStatus @default(PENDING)
+  totalAmountUSD          Decimal             @db.Decimal(12, 2)
+  approverCurrency        String              @default("USD")
+  totalInApproverCurrency Decimal             @db.Decimal(12, 2)
+  notes                   String?
+  rejectionReason         String?
+  month                   Int
+  year                    Int
+
+  items     ReimbursementItem[]
+  auditLogs AuditLog[]
+
+  submittedAt DateTime  @default(now())
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([employeeId, status])
+  @@index([approverId, status])
+  @@index([month, year])
+}
+
+model ReimbursementItem {
+  id                     String               @id @default(uuid())
+  reimbursementRequestId String
+  reimbursementRequest   ReimbursementRequest @relation(fields: [reimbursementRequestId], references: [id], onDelete: Cascade)
+  expenseId              String
+  expense                Expense              @relation(fields: [expenseId], references: [id])
+  originalAmount         Decimal              @db.Decimal(12, 2)
+  originalCurrency       String
+  amountUSD              Decimal              @db.Decimal(12, 2)
+  exchangeRateToUSD      Decimal              @db.Decimal(10, 6)
+
+  createdAt DateTime @default(now())
+
+  @@index([reimbursementRequestId])
+  @@index([expenseId])
+}
+
+model AuditLog {
+  id         String  @id @default(uuid())
+  userId     String
+  user       User    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+
+  expenseId              String?
+  expense                Expense?              @relation(fields: [expenseId], references: [id])
+  reimbursementRequestId String?
+  reimbursementRequest   ReimbursementRequest? @relation(fields: [reimbursementRequestId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
